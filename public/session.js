@@ -175,7 +175,7 @@ function showSession(sessionString, userName) {
 sendCodeBtn.addEventListener('click', async () => {
     const appId = appIdInput.value.trim();
     const appHash = appHashInput.value.trim();
-    const phoneNumber = phoneNumberInput.value.trim();
+    let phoneNumber = phoneNumberInput.value.trim();
     const botToken = botTokenInput.value.trim();
     
     if (!phoneNumber && !botToken) {
@@ -188,9 +188,30 @@ sendCodeBtn.addEventListener('click', async () => {
         return;
     }
     
-    if (phoneNumber && !phoneNumber.startsWith('+')) {
-        addOutput('ERROR: Phone number must include country code (e.g., +1)', 'error');
-        return;
+    // Validate phone number format
+    if (phoneNumber) {
+        // Add + prefix if missing
+        if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+            phoneNumberInput.value = phoneNumber;
+        }
+        
+        // Validate phone number format: +[country code][number]
+        const phoneRegex = /^\+\d{8,15}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            addOutput('ERROR: Invalid phone number format. Must be +[country code][number] (8-15 digits)', 'error');
+            return;
+        }
+    }
+    
+    // Validate bot token format
+    if (botToken) {
+        // Bot token format: [bot_id]:[token] (e.g., 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz)
+        const botTokenRegex = /^\d{8,10}:[A-Za-z0-9_-]{35}$/;
+        if (!botTokenRegex.test(botToken)) {
+            addOutput('ERROR: Invalid bot token format. Must be [bot_id]:[token]', 'error');
+            return;
+        }
     }
     
     sessionState.appId = appId;
