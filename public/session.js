@@ -159,6 +159,7 @@ function showSession(sessionString, userName) {
     updateProgress(3); // Move to Session step
     resetBtn.style.display = 'flex';
     verifyBtn.style.display = 'none';
+    sendCodeBtn.style.display = 'none';
     
     if (userName) {
         addOutput(`\n✓ Session generated successfully for ${userName}!`, 'success');
@@ -267,16 +268,14 @@ sendCodeBtn.addEventListener('click', async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     if (window.generateSession) {
-        if (botToken) {
-            addOutput('Logging in as bot...', 'info');
-        } else {
-            addOutput(`Sending code to ${phoneNumber}...`, 'info');
-        }
         try {
-            window.generateSession(appId, appHash, phoneNumber, botToken);
-            if (!botToken) {
-                updateProgress(2); // Move to Verify step (only for user login)
+            if (botToken) {
+                addOutput('Logging in as bot...', 'info');
+                updateProgress(2); // Move to processing for bot
+            } else {
+                addOutput(`Sending code to ${phoneNumber}...`, 'info');
             }
+            window.generateSession(appId, appHash, phoneNumber, botToken);
         } catch (error) {
             addOutput(`ERROR: ${error.message}`, 'error');
             enableButton(sendCodeBtn);
@@ -291,7 +290,7 @@ sendCodeBtn.addEventListener('click', async () => {
             originalLog(...args);
             
             // Check for prompts from WASM
-            if (msg.includes('PROMPT_CODE')) {
+            if (msg.includes('PROMPT_CODE') && !sessionState.botToken) {
                 sessionState.awaitingCode = true;
                 updateProgress(2); // Move to Verify step
                 codeGroup.style.display = 'block';
@@ -349,62 +348,10 @@ verifyBtn.addEventListener('click', () => {
     sendInputToWasm('code', code);
 });
 
-// Copy session
-copyBtn.addEventListener('click', async () => {
-    const session = sessionStringElement.textContent;
-    
-    try {
-        await navigator.clipboard.writeText(session);
-        const originalText = copyBtn.querySelector('span').textContent;
-        copyBtn.querySelector('span').textContent = 'Copied!';
-        copyBtn.style.background = 'var(--success)';
-        copyBtn.style.color = 'white';
-        
-        setTimeout(() => {
-            copyBtn.querySelector('span').textContent = originalText;
-            copyBtn.style.background = '';
-            copyBtn.style.color = '';
-        }, 2000);
-        
-        addOutput('Session copied to clipboard', 'success');
-    } catch (error) {
-        addOutput('Failed to copy to clipboard', 'error');
-    }
-});
-
 // Reset
 resetBtn.addEventListener('click', () => {
-    // Reset form
-    isGenerating = false;
-    appIdInput.value = '';
-    appHashInput.value = '';
-    phoneNumberInput.value = '';
-    verificationCodeInput.value = '';
-    passwordInput.value = '';
-    
-    // Reset UI
-    codeGroup.style.display = 'none';
-    passwordGroup.style.display = 'none';
-    sendCodeBtn.style.display = 'flex';
-    verifyBtn.style.display = 'none';
-    resetBtn.style.display = 'none';
-    
-    // Reset progress
-    updateProgress(1);
-    
-    // Reset state
-    sessionState = {
-        appId: '',
-        appHash: '',
-        phoneNumber: '',
-        phoneCodeHash: '',
-        awaitingCode: false,
-        awaiting2FA: false,
-        currentStep: 1
-    };
-    
-    clearOutput();
-    addOutput('Enter your credentials to begin', 'info');
+    // Reload the page for a clean start
+    window.location.reload();
 });
 
 // Enter key handlers
