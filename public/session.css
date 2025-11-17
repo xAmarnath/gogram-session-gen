@@ -224,30 +224,29 @@ h1 {
 
 /* Security Banner */
 .security-banner {
-    background: linear-gradient(135deg, rgba(63, 185, 80, 0.1), rgba(88, 166, 255, 0.1));
-    border: 1px solid var(--success);
-    border-left: 4px solid var(--success);
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     padding: 0.75rem 1.5rem;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.75rem;
     font-size: 0.85rem;
-    color: var(--text-primary);
-    max-width: 1400px;
-    margin: 0 auto;
+    color: var(--text-secondary);
+    max-width: 100%;
+    margin: 0;
 }
 
-.security-banner svg {
-    color: var(--success);
+.security-banner svg,
+.security-banner i {
+    color: var(--text-secondary);
     flex-shrink: 0;
+    opacity: 0.7;
 }
 
 .security-banner strong {
-    color: var(--success);
-}
-
-[data-theme="dark"] .security-banner {
-    background: linear-gradient(135deg, rgba(63, 185, 80, 0.05), rgba(88, 166, 255, 0.05));
+    color: var(--text-primary);
 }
 
 [data-theme="dark"] .icon-btn:hover {
@@ -268,10 +267,47 @@ body:not([data-theme="dark"]) .sun {
     display: block;
 }
 
+/* Hero Text */
+.hero-text {
+    text-align: center;
+    max-width: 1400px;
+    margin: 0 auto 2rem;
+    padding: 0;
+}
+
+.hero-text h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.hero-text h1 i {
+    font-size: 1.75rem;
+    background: linear-gradient(135deg, var(--accent), var(--success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-text p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
 .main-content {
     flex: 1;
     display: flex;
-    padding: 2rem;
+    flex-direction: column;
+    padding: 1.5rem 2rem 2rem;
     overflow: hidden;
     background: radial-gradient(ellipse at top, var(--bg-secondary), var(--bg-primary));
     position: relative;
@@ -1038,9 +1074,29 @@ footer {
         font-size: 0.75rem;
     }
 
-    .security-banner svg {
+    .security-banner svg,
+    .security-banner i {
         width: 14px;
         height: 14px;
+        font-size: 14px;
+    }
+
+    .hero-text {
+        margin: 0 auto 1.25rem;
+        padding: 0 0.5rem;
+    }
+
+    .hero-text h1 {
+        font-size: 1.5rem;
+        gap: 0.5rem;
+    }
+
+    .hero-text h1 i {
+        font-size: 1.35rem;
+    }
+
+    .hero-text p {
+        font-size: 0.875rem;
     }
 
     .icon-btn {
@@ -1050,7 +1106,7 @@ footer {
     }
 
     .main-content {
-        padding: 0.875rem;
+        padding: 1rem 0.875rem 0.875rem;
     }
 
     .session-wrapper {
@@ -1183,3 +1239,4 @@ footer {
         font-size: 0.8rem;
     }
 }
+
