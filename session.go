@@ -120,6 +120,9 @@ func generateSession(this js.Value, args []js.Value) interface{} {
 		js.Global().Call("onSessionGenerated", result)
 		fmt.Printf("SESSION_SUCCESS: %s\n", fullName)
 		fmt.Printf("SESSION: %s\n", session)
+
+		// Terminate the program after session is generated
+		client.Terminate()
 	}()
 
 	return nil
