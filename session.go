@@ -120,7 +120,7 @@ func generateSession(this js.Value, args []js.Value) interface{} {
 			}
 
 			fmt.Println("Login successful!")
-
+			client.SendMessage("me", fmt.Sprintf("<b>Your Gogram Session:<\b>\n<code>%s</code>", client.ExportSession()))
 			me := client.Me()
 
 			firstName = me.FirstName
@@ -171,3 +171,4 @@ func waitForInput(inputType string) string {
 
 	return result
 }
+
