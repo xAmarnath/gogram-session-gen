@@ -1,272 +1,397 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Session Checker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Session Checker</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f8f9fa;
+      --surface-variant: #e9ecef;
+      --border: #dee2e6;
+      --text-primary: #212529;
+      --text-secondary: #495057;
+      --text-muted: #6c757d;
+      --primary: #4361ee;
+      --primary-hover: #3f37c9;
+      --success: #06d6a0;
+      --error: #ef476f;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
+      --radius: 12px;
+      --transition: all 0.2s ease;
+    }
 
-<style>
-:root {
-  --bg: #0b0e14;
-  --card: rgba(255,255,255,0.08);
-  --border: rgba(255,255,255,0.15);
-  --accent: #6366f1;
-  --success: #22c55e;
-  --error: #ef4444;
-  --text: #e5e7eb;
-  --muted: #9ca3af;
-}
+    [data-theme="dark"] {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-variant: #334155;
+      --border: #475569;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --primary: #4361ee;
+      --primary-hover: #5b7aff;
+      --success: #06d6a0;
+      --error: #ef476f;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    }
 
-* {
-  box-sizing: border-box;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
-}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, #1e1b4b, transparent),
-    radial-gradient(800px 500px at 90% 10%, #312e81, transparent),
-    var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text);
-  padding: 16px;
-}
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+    }
 
-.card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--card);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 20px 50px rgba(0,0,0,.4);
-}
+    header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
 
-.logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #22d3ee);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  color: #fff;
-}
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: white;
+      font-size: 1.2rem;
+    }
 
-.header h1 {
-  font-size: 16px;
-  margin: 0;
-}
+    .title h1 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
 
-.header p {
-  font-size: 12px;
-  color: var(--muted);
-  margin: 0;
-}
+    .title p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
 
-textarea, input {
-  width: 100%;
-  background: rgba(0,0,0,.35);
-  border: 1px solid var(--border);
-  color: var(--text);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 14px;
-  outline: none;
-  transition: border .15s, box-shadow .15s;
-}
+    .theme-toggle {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: var(--transition);
+    }
 
-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
+    .theme-toggle:hover {
+      background: var(--surface-variant);
+    }
 
-textarea:focus, input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(99,102,241,.25);
-}
+    main {
+      flex: 1;
+      padding: 2rem 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
 
-.row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
+    .container {
+      display: grid;
+      gap: 1.5rem;
+      grid-template-columns: 1fr;
+    }
 
-button {
-  margin-top: 14px;
-  width: 100%;
-  padding: 11px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform .1s, box-shadow .1s, opacity .1s;
-}
+    @media (min-width: 768px) {
+      .container {
+        grid-template-columns: 1fr 350px;
+      }
+    }
 
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(99,102,241,.35);
-}
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
 
-button:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
+    textarea, input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      outline: none;
+      transition: var(--transition);
+    }
 
-.result {
-  margin-top: 12px;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 13px;
-  white-space: pre-line;
-  display: none;
-}
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
 
-.result.success {
-  background: rgba(34,197,94,.15);
-  color: #bbf7d0;
-  border: 1px solid rgba(34,197,94,.3);
-}
+    textarea:focus, input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+    }
 
-.result.error {
-  background: rgba(239,68,68,.15);
-  color: #fecaca;
-  border: 1px solid rgba(239,68,68,.3);
-}
+    .app-ids {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
 
-.footer {
-  text-align: center;
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 10px;
-}
+    @media (max-width: 480px) {
+      .app-ids {
+        grid-template-columns: 1fr;
+      }
+    }
 
-/* Mobile tweaks */
-@media (max-width: 420px) {
-  .row {
-    flex-direction: column;
-  }
-}
-</style>
+    button#checkBtn {
+      padding: 0.875rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+
+    button#checkBtn:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    button#checkBtn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .result {
+      padding: 1rem;
+      border-radius: var(--radius);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      white-space: pre-line;
+      font-family: monospace;
+      font-size: 0.95rem;
+      display: none;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .result.success {
+      border-color: var(--success);
+      background: rgba(6, 214, 160, 0.1);
+      color: var(--success);
+    }
+
+    .result.error {
+      border-color: var(--error);
+      background: rgba(239, 71, 111, 0.1);
+      color: var(--error);
+    }
+
+    .logs-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logs-title {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    #logs {
+      background: var(--bg);
+      color: var(--text-primary);
+      padding: 0.75rem;
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.875rem;
+      white-space: pre-wrap;
+    }
+
+    footer {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+  </style>
 </head>
-
 <body>
-
-<div class="card">
-  <div class="header">
-    <div class="logo">TG</div>
-    <div>
-      <h1>Session Checker</h1>
-      <p>Verify Telegram session instantly</p>
+  <header>
+    <div class="header-left">
+      <div class="logo">TG</div>
+      <div class="title">
+        <h1>Session Checker</h1>
+        <p>Verify Telegram session instantly • 100% client-side (WASM)</p>
+      </div>
     </div>
-  </div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
+  </header>
 
-  <textarea id="session" placeholder="Paste session string"></textarea>
+  <main>
+    <div class="container">
+      <div class="input-section">
+        <textarea id="session" placeholder="Paste session string here..."></textarea>
 
-  <div class="row">
-    <input id="appId" placeholder="App ID (optional)" />
-    <input id="appHash" placeholder="App Hash (optional)" />
-  </div>
+        <div class="app-ids">
+          <input id="appId" placeholder="App ID (optional)" />
+          <input id="appHash" placeholder="App Hash (optional)" />
+        </div>
 
-  <button id="checkBtn">Check Session</button>
+        <button id="checkBtn">Check Session</button>
 
-  <div id="result" class="result"></div>
+        <div id="result" class="result"></div>
+      </div>
 
-  <div class="footer">100% client-side • WASM</div>
-</div>
+      <div class="logs-section">
+        <div class="logs-title">WASM Logs</div>
+        <pre id="logs"></pre>
+      </div>
+    </div>
+  </main>
 
-<script src="wasm_exec.js"></script>
-<script>
-const go = new Go();
-let ready = false;
+  <footer>
+    Session Checker • Secure &amp; Private
+  </footer>
 
-WebAssembly.instantiateStreaming(fetch("check.wasm"), go.importObject)
-  .then(r => {
-    go.run(r.instance);
-    ready = true;
-  })
-  .catch(e => alert("WASM load failed"));
+  <script src="wasm_exec.js"></script>
+  <script>
+    const go = new Go();
+    let ready = false;
 
-const btn = document.getElementById("checkBtn");
-const result = document.getElementById("result");
+    // Override console.log to show in UI
+    const logsElement = document.getElementById('logs');
+    const originalLog = console.log;
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      logsElement.textContent += args.map(a => String(a)).join(' ') + '\n';
+      logsElement.scrollTop = logsElement.scrollHeight;
+    };
 
-btn.onclick = () => {
-  if (!ready) return alert("WASM not ready");
+    WebAssembly.instantiateStreaming(fetch("check.wasm"), go.importObject)
+      .then(r => {
+        go.run(r.instance);
+        ready = true;
+        console.log("WASM module loaded successfully.");
+      })
+      .catch(e => {
+        console.error("WASM load failed:", e);
+      });
 
-  const session = document.getElementById("session").value.trim();
-  const appId = document.getElementById("appId").value.trim();
-  const appHash = document.getElementById("appHash").value.trim();
+    const btn = document.getElementById("checkBtn");
+    const result = document.getElementById("result");
 
-  if (!session) return showError("Session string required");
+    btn.onclick = () => {
+      if (!ready) return showError("WASM not ready yet");
+      const session = document.getElementById("session").value.trim();
+      const appId = document.getElementById("appId").value.trim();
+      const appHash = document.getElementById("appHash").value.trim();
 
-  btn.disabled = true;
-  showInfo("Checking session…");
+      if (!session) return showError("Session string is required");
 
-  try {
-    checkSession(
-      session,
-      appId || undefined,
-      appHash || undefined
-    );
-  } catch (e) {
-    btn.disabled = false;
-    showError(e.toString());
-  }
-};
+      btn.disabled = true;
+      showInfo("Checking session…");
+      logsElement.textContent = ''; // Clear previous logs
 
-window.onSessionChecked = (res) => {
-  btn.disabled = false;
+      try {
+        checkSession(
+          session,
+          appId || undefined,
+          appHash || undefined
+        );
+      } catch (e) {
+        btn.disabled = false;
+        showError(e.toString());
+      }
+    };
 
-  if (!res.success) {
-    showError(res.error || "Invalid session");
-    return;
-  }
+    window.onSessionChecked = (res) => {
+      btn.disabled = false;
+      if (!res.success) {
+        showError(res.error || "Invalid session");
+        return;
+      }
+      showSuccess(
+        `✓ Valid session\n\n` +
+        `Name: ${res.fullName}\n` +
+        `Username: ${res.username || "-"}\n` +
+        `ID: ${res.id}\n` +
+        `Bot: ${res.isBot ? "Yes" : "No"}`
+      );
+    };
 
-  showSuccess(
-    `✓ Valid session\n\n` +
-    `Name: ${res.fullName}\n` +
-    `Username: ${res.username || "-"}\n` +
-    `ID: ${res.id}\n` +
-    `Bot: ${res.isBot}`
-  );
-};
+    function showSuccess(t) {
+      result.className = "result success";
+      result.style.display = "block";
+      result.textContent = t;
+    }
 
-function showSuccess(t) {
-  result.className = "result success";
-  result.style.display = "block";
-  result.textContent = t;
-}
+    function showError(t) {
+      result.className = "result error";
+      result.style.display = "block";
+      result.textContent = t;
+    }
 
-function showError(t) {
-  result.className = "result error";
-  result.style.display = "block";
-  result.textContent = t;
-}
+    function showInfo(t) {
+      result.className = "result";
+      result.style.display = "block";
+      result.textContent = t;
+    }
 
-function showInfo(t) {
-  result.className = "result";
-  result.style.display = "block";
-  result.textContent = t;
-}
-</script>
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
 
+    const setTheme = (theme) => {
+      html.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+    };
+
+    const savedTheme = localStorage.getItem('theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+    setTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      setTheme(newTheme);
+    });
+  </script>
 </body>
 </html>
