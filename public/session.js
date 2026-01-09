@@ -276,8 +276,8 @@ sendCodeBtn.addEventListener('click', async () => {
         phoneNumberInput.value = normalizedPhone;
     }
 
-    // Validate DC ID (default 4)
-    let dc = '4';
+    // Validate DC ID (default 5)
+    let dc = '5';
     if (dcIdInput && dcIdInput.value) {
         const tmp = dcIdInput.value.trim();
         if (!/^\d+$/.test(tmp)) {
