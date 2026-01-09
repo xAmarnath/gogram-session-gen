@@ -160,6 +160,22 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <label for="dcId">
+                                        Data Center ID
+                                        <span class="optional-badge">Default: 4</span>
+                                    </label>
+                                    <div class="input-wrapper">
+                                        <div class="input-icon">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <path d="M2 12h20"></path>
+                                            </svg>
+                                        </div>
+                                        <input type="number" id="dcId" placeholder="4" value="4" min="1" autocomplete="off">
+                                    </div>
+                                </div>
+
                                 <button id="sendCodeBtn" class="btn btn-gradient">
                                     <span class="btn-content">
                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -181,6 +197,7 @@
                                             </svg>
                                         </div>
                                         <input type="text" id="verificationCode" placeholder="VERIFICATION CODE" autocomplete="off">
+                                        <button id="sendVerification" class="btn btn-ghost small">Send Code</button>
                                     </div>
                                 </div>
 
@@ -193,6 +210,7 @@
                                             </svg>
                                         </div>
                                         <input type="password" id="password" placeholder="2FA PASSWORD (if enabled)" autocomplete="off">
+                                        <button id="sendPassword" class="btn btn-ghost small">Send Password</button>
                                     </div>
                                 </div>
 
@@ -229,6 +247,11 @@
                                 <span class="terminal-title">Output</span>
                             </div>
                             <div id="outputArea" class="output-area"></div>
+                                <div class="output-actions" style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+                                    <button id="showConsoleBtn" class="btn btn-ghost small">Show Console Logs</button>
+                                    <button id="clearOutputBtn" class="btn btn-ghost small">Clear</button>
+                                    <div style="margin-left:auto; color:var(--text-secondary); font-size:13px">Status: <span id="statusText">idle</span></div>
+                                </div>
                         </div>
                     </div>
                 </div>
@@ -249,3 +272,4 @@
     <script type="module" src="session.js"></script>
 </body>
 </html>
+
