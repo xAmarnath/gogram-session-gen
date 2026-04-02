@@ -1,505 +1,463 @@
-// Theme management
-const themeToggle = document.getElementById('themeToggle');
-const currentTheme = localStorage.getItem('theme') || 'dark';
-document.body.setAttribute('data-theme', currentTheme);
+const html = document.documentElement;
+const themeToggle = document.getElementById("themeToggle");
+const statusText = document.getElementById("statusText");
+const outputArea = document.getElementById("outputArea");
+const clearOutputBtn = document.getElementById("clearOutputBtn");
+const showConsoleBtn = document.getElementById("showConsoleBtn");
 
-themeToggle.addEventListener('click', () => {
-    const theme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-});
+const appIdInput = document.getElementById("appId");
+const appHashInput = document.getElementById("appHash");
+const phoneNumberInput = document.getElementById("phoneNumber");
+const botTokenInput = document.getElementById("botToken");
+const dcIdInput = document.getElementById("dcId");
 
-// Form elements
-const appIdInput = document.getElementById('appId');
-const appHashInput = document.getElementById('appHash');
-const phoneNumberInput = document.getElementById('phoneNumber');
-const botTokenInput = document.getElementById('botToken');
-const sendCodeBtn = document.getElementById('sendCodeBtn');
+const sendCodeBtn = document.getElementById("sendCodeBtn");
+const verifyBtn = document.getElementById("verifyBtn");
+const resetBtn = document.getElementById("resetBtn");
+const verificationCodeInput = document.getElementById("verificationCode");
+const passwordInput = document.getElementById("password");
+const codeGroup = document.getElementById("codeGroup");
+const passwordGroup = document.getElementById("passwordGroup");
+const sendVerification = document.getElementById("sendVerification");
+const sendPassword = document.getElementById("sendPassword");
 
-const codeGroup = document.getElementById('codeGroup');
-const verificationCodeInput = document.getElementById('verificationCode');
-const passwordGroup = document.getElementById('passwordGroup');
-const passwordInput = document.getElementById('password');
-const verifyBtn = document.getElementById('verifyBtn');
-const resetBtn = document.getElementById('resetBtn');
-
-const outputArea = document.getElementById('outputArea');
-const dcIdInput = document.getElementById('dcId');
-const clearOutputBtn = document.getElementById('clearOutputBtn');
-const showConsoleBtn = document.getElementById('showConsoleBtn');
-const sendVerification = document.getElementById('sendVerification');
-const sendPassword = document.getElementById('sendPassword');
-const statusText = document.getElementById('statusText');
-
-// Progress steps
-const progressSteps = document.querySelectorAll('.progress-step');
-const progressLine = document.querySelector('.progress-line');
-
-// WASM instance and state
-let wasmInstance = null;
 let wasmGo = null;
-let isGenerating = false; // Prevent duplicate calls
-let sessionState = {
-    appId: '',
-    appHash: '',
-    phoneNumber: '',
-    phoneCodeHash: '',
-    awaitingCode: false,
-    awaiting2FA: false,
-    currentStep: 1
-};
+let wasmInstance = null;
+let wasmReady = false;
+let wasmLoadPromise = null;
+let busy = false;
+let currentMode = "idle";
+let originalConsole = null;
 
-// Update status indicator
-function setStatus(s) {
-    if (statusText) statusText.textContent = s;
+function setStatus(value) {
+  currentMode = value;
+  if (statusText) {
+    statusText.textContent = value;
+  }
 }
 
-// Phone normalization helper
+function setButtonBusy(button, isBusy, label) {
+  if (!button) return;
+  button.disabled = isBusy;
+  const spinner = button.querySelector(".spinner");
+  const text = button.querySelector(".btn-label");
+
+  if (spinner) {
+    spinner.classList.toggle("hidden", !isBusy);
+  }
+
+  if (text && label) {
+    text.textContent = label;
+  }
+}
+
+function setTheme(theme) {
+  html.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const theme = saved || preferred;
+  setTheme(theme);
+}
+
+function toggleTheme() {
+  const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  setTheme(next);
+}
+
+function pushLine(message, type = "info") {
+  if (!outputArea) return;
+  const line = document.createElement("div");
+  line.className = `console-line ${type} fade-in`;
+  line.textContent = message;
+  outputArea.appendChild(line);
+  outputArea.scrollTop = outputArea.scrollHeight;
+}
+
+function clearConsole() {
+  if (outputArea) {
+    outputArea.innerHTML = "";
+  }
+}
+
 function normalizePhoneNumber(phone) {
-    if (!phone) return phone;
-    let s = phone.trim();
-    // remove all except digits and leading +
-    s = s.replace(/[^0-9+]/g, '');
-    if (s.startsWith('+')) return s;
-    // strip leading zeros
-    s = s.replace(/^0+/, '');
-    // if 10 digits -> assume India
-    const digits = s.replace(/\D/g, '');
-    if (digits.length === 10) return '+91' + digits;
-    if (s.startsWith('91') && digits.length === 12) return '+' + s;
-    // if it looks like a number starting with country code without plus, add plus
-    if (/^\d{8,15}$/.test(s)) return '+' + s;
-    return s;
+  if (!phone) return "";
+  let value = phone.trim().replace(/[^\d+]/g, "");
+  if (value.startsWith("+")) return value;
+  value = value.replace(/^0+/, "");
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) return `+91${digits}`;
+  if (/^\d{8,15}$/.test(value)) return `+${value}`;
+  return value;
 }
 
-// Update progress step
-function updateProgress(step) {
-    sessionState.currentStep = step;
+function showField(field, visible) {
+  if (!field) return;
+  field.classList.toggle("hidden", !visible);
+}
 
-    progressSteps.forEach((stepEl, index) => {
-        const stepNum = index + 1;
+function showSession(sessionString, fullName) {
+  setStatus("done");
+  busy = false;
+  setButtonBusy(sendCodeBtn, false, "Send Code");
+  setButtonBusy(verifyBtn, false, "Generate Session");
+  sendCodeBtn.classList.add("hidden");
+  verifyBtn.classList.add("hidden");
+  resetBtn.classList.remove("hidden");
 
-        if (stepNum < step) {
-            stepEl.classList.add('completed');
-            stepEl.classList.remove('active');
-        } else if (stepNum === step) {
-            stepEl.classList.add('active');
-            stepEl.classList.remove('completed');
-        } else {
-            stepEl.classList.remove('active', 'completed');
-        }
-    });
+  const result = document.createElement("section");
+  result.className = "session-block fade-in";
 
-    // Update progress line
-    if (progressLine) {
-        const progress = ((step - 1) / (progressSteps.length - 1)) * 100;
-        progressLine.style.setProperty('--progress', `${progress}%`);
+  const head = document.createElement("div");
+  head.className = "session-block-head";
+  const badge = document.createElement("span");
+  badge.className = "panel-badge";
+  badge.textContent = "Session forged";
+  const tag = document.createElement("span");
+  tag.className = "tag";
+  tag.textContent = "copy-ready";
+  head.append(badge, tag);
+
+  const title = document.createElement("div");
+  title.style.marginBottom = "0.8rem";
+  const strong = document.createElement("strong");
+  strong.style.display = "block";
+  strong.style.fontSize = "1.1rem";
+  strong.style.marginBottom = "0.25rem";
+  strong.textContent = fullName ? `Welcome, ${fullName}` : "Session completed";
+  const sub = document.createElement("span");
+  sub.className = "mini-note";
+  sub.textContent = "Your string session is ready. Keep it private and store it securely.";
+  title.append(strong, sub);
+
+  const code = document.createElement("code");
+  code.className = "session-code";
+  code.textContent = sessionString;
+
+  const row = document.createElement("div");
+  row.className = "copy-row";
+
+  const copyBtn = document.createElement("button");
+  copyBtn.type = "button";
+  copyBtn.className = "copy-btn";
+  copyBtn.textContent = "Copy session";
+  copyBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(sessionString);
+      pushLine("✓ Session copied to clipboard", "success");
+    } catch {
+      pushLine("Failed to copy session", "error");
     }
+  });
+
+  const hint = document.createElement("span");
+  hint.className = "mini-note";
+  hint.textContent = "The output panel remains available if you want to inspect the login log again.";
+
+  row.append(copyBtn, hint);
+  result.append(head, title, code, row);
+
+  outputArea.appendChild(result);
+  outputArea.scrollTop = outputArea.scrollHeight;
 }
 
-// Add output line
-function addOutput(message, type = 'info') {
-    const line = document.createElement('div');
-    line.className = `output-line ${type}`;
-    line.textContent = message;
-    outputArea.appendChild(line);
-    outputArea.scrollTop = outputArea.scrollHeight;
+function hookConsole() {
+  if (originalConsole) return;
+  originalConsole = {
+    log: console.log.bind(console),
+    info: console.info.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console),
+    debug: console.debug ? console.debug.bind(console) : console.log.bind(console),
+  };
+
+  const proxy = (level) => (...args) => {
+    const text = args
+      .map((value) => (typeof value === "string" ? value : JSON.stringify(value)))
+      .join(" ");
+
+    if (text) {
+      const mapped =
+        level === "error" ? "error" :
+        level === "warn" ? "warn" :
+        level === "debug" ? "debug" :
+        text.includes("SUCCESS") ? "success" :
+        text.includes("ERROR") ? "error" :
+        "info";
+      pushLine(text, mapped);
+      if (text.includes("PROMPT_CODE")) {
+        showField(codeGroup, true);
+        showField(passwordGroup, false);
+        verifyBtn.classList.remove("hidden");
+        setButtonBusy(verifyBtn, false, "Generate Session");
+        verificationCodeInput.focus();
+      }
+      if (text.includes("PROMPT_PASSWORD")) {
+        showField(passwordGroup, true);
+        verifyBtn.classList.remove("hidden");
+        passwordInput.focus();
+      }
+    }
+
+    originalConsole[level](...args);
+  };
+
+  console.log = proxy("log");
+  console.info = proxy("info");
+  console.warn = proxy("warn");
+  console.error = proxy("error");
+  console.debug = proxy("debug");
 }
 
-// Clear output
-function clearOutput() {
-    outputArea.innerHTML = '';
-}
-
-// Disable button with spinner
-function disableButton(btn) {
-    btn.disabled = true;
-    const spinner = btn.querySelector('.spinner');
-    if (spinner) spinner.style.display = 'inline-block';
-}
-
-// Enable button
-function enableButton(btn) {
-    btn.disabled = false;
-    const spinner = btn.querySelector('.spinner');
-    if (spinner) spinner.style.display = 'none';
-}
-
-// Load WASM
 async function loadWasm() {
-    try {
-        addOutput('Loading session generator...', 'info');
+  if (wasmReady) return wasmInstance;
+  if (wasmLoadPromise) return wasmLoadPromise;
 
-        wasmGo = new Go();
+  if (!wasmGo) {
+    wasmGo = new Go();
+  }
 
-        const result = await WebAssembly.instantiateStreaming(
-            fetch('session.wasm'),
-            wasmGo.importObject
-        );
+  setStatus("loading");
+    pushLine("Loading runtime...", "info");
 
-        wasmInstance = result.instance;
+  wasmLoadPromise = WebAssembly.instantiateStreaming(fetch("session.wasm"), wasmGo.importObject)
+    .then((result) => {
+      wasmInstance = result.instance;
+      wasmGo.run(wasmInstance);
+      wasmReady = true;
+      pushLine("Runtime ready.", "success");
+      setStatus("ready");
+      return wasmInstance;
+    })
+    .catch((error) => {
+      wasmLoadPromise = null;
+      throw error;
+    });
 
-        // Run WASM asynchronously
-        wasmGo.run(wasmInstance);
-
-        addOutput('Session generator ready', 'success');
-
-    } catch (error) {
-        addOutput(`Failed to load WASM: ${error.message}`, 'error');
-        console.error('WASM load error:', error);
-    }
+  return wasmLoadPromise;
 }
 
-// Global callback for session generation result
-window.onSessionGenerated = function (result) {
-    isGenerating = false;
-    if (result.success) {
-        showSession(result.session, result.fullName);
-        setStatus('done');
-        // Kill the WASM program after session is received
-        setTimeout(() => {
-            if (window.wasmInstance) {
-                try {
-                    // Force terminate the Go program
-                    window.wasmInstance = null;
-                    addOutput('✓ Session saved. Connection terminated.', 'success');
-                } catch (e) {
-                    console.log('WASM cleanup:', e);
-                }
-            }
-        }, 100);
-    } else {
-        addOutput(`ERROR: ${result.error || 'Session generation failed'}`, 'error');
-        enableButton(verifyBtn);
-        setStatus('failed');
-    }
+function dispatchInput(kind, value) {
+  const key = `__wasmInput_${kind}`;
+  if (typeof window[key] === "function") {
+    window[key](value);
+    return true;
+  }
+  if (typeof window.__wasmInputDispatcher === "function") {
+    window.__wasmInputDispatcher(kind, value);
+    return true;
+  }
+  return false;
+}
+
+window.onSessionGenerated = (result) => {
+  busy = false;
+
+  if (!result || !result.success) {
+    pushLine(result?.error || "Session generation failed", "error");
+    setStatus("error");
+    setButtonBusy(sendCodeBtn, false, "Send Code");
+    setButtonBusy(verifyBtn, false, "Generate Session");
+    sendCodeBtn.classList.remove("hidden");
+    return;
+  }
+
+  showSession(result.session, result.fullName || "");
 };
 
-// Send input to WASM (use wrapper if available, else dispatcher)
-function sendInputToWasm(type, value) {
-    const callbackName = `__wasmInput_${type}`;
-    try {
-        if (typeof window[callbackName] === 'function') {
-            window[callbackName](value);
-            addOutput(`Dispatched ${type} via wrapper`, 'debug');
-            return;
-        }
-        if (typeof window.__wasmInputDispatcher === 'function') {
-            window.__wasmInputDispatcher(type, value);
-            addOutput(`Dispatched ${type} via dispatcher`, 'debug');
-            return;
-        }
-    } catch (e) {
-        addOutput(`Dispatcher error: ${e}`, 'error');
-    }
-    addOutput(`No dispatcher available for ${type}`, 'warn');
-}
-
-// Show session result
-function showSession(sessionString, userName) {
-    updateProgress(3); // Move to Session step
-    resetBtn.style.display = 'flex';
-    verifyBtn.style.display = 'none';
-    sendCodeBtn.style.display = 'none';
-
-    if (userName) {
-        addOutput(`\n✓ Session generated successfully for ${userName}!`, 'success');
-    } else {
-        addOutput('\n✓ Session generated successfully!', 'success');
-    }
-
-    // Add session string with copy button in terminal
-    const sessionDiv = document.createElement('div');
-    sessionDiv.className = 'session-line';
-    sessionDiv.innerHTML = `
-        <div class="session-header">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <span>Session String:</span>
-        </div>
-        <div class="session-string-container">
-            <code class="session-string">${sessionString}</code>
-            <button class="copy-session-btn" onclick="copySessionString('${sessionString}')" title="Copy session">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-            </button>
-        </div>
-    `;
-    outputArea.appendChild(sessionDiv);
-    outputArea.scrollTop = outputArea.scrollHeight;
-
-    enableButton(verifyBtn);
-}
-
-// Copy session string function
-window.copySessionString = function (sessionString) {
-    navigator.clipboard.writeText(sessionString).then(() => {
-        addOutput('✓ Session copied to clipboard!', 'success');
-    }).catch(() => {
-        addOutput('✗ Failed to copy session', 'error');
-    });
+window.copySessionString = async (sessionString) => {
+  try {
+    await navigator.clipboard.writeText(sessionString);
+    pushLine("✓ Session copied to clipboard", "success");
+  } catch {
+    pushLine("Failed to copy session", "error");
+  }
 };
 
-// Send code
-sendCodeBtn.addEventListener('click', async () => {
-    if (isGenerating) {
-        addOutput('Already processing...', 'info');
-        return;
+function readInputs() {
+  const appId = appIdInput.value.trim();
+  const appHash = appHashInput.value.trim();
+  const phone = phoneNumberInput.value.trim();
+  const botToken = botTokenInput.value.trim();
+  const dc = dcIdInput.value.trim() || "5";
+
+  if (!phone && !botToken) {
+    throw new Error("Phone number or bot token is required");
+  }
+
+  if (phone && botToken) {
+    throw new Error("Use either phone number or bot token, not both");
+  }
+
+  let normalizedPhone = "";
+  if (phone) {
+    normalizedPhone = normalizePhoneNumber(phone);
+    if (!/^\+\d{8,15}$/.test(normalizedPhone)) {
+      throw new Error(`Invalid phone number: ${normalizedPhone}`);
     }
+    phoneNumberInput.value = normalizedPhone;
+  }
 
-    const appId = appIdInput.value.trim();
-    const appHash = appHashInput.value.trim();
-    let phoneNumber = phoneNumberInput.value.trim();
-    const botToken = botTokenInput.value.trim();
+  if (!/^\d+$/.test(dc)) {
+    throw new Error("Data center ID must be a positive integer");
+  }
 
-    if (!phoneNumber && !botToken) {
-        addOutput('ERROR: Phone number or bot token is required', 'error');
-        return;
-    }
+  if (botToken && !/^\d{8,10}:[A-Za-z0-9_-]{35}$/.test(botToken)) {
+    throw new Error("Invalid bot token format");
+  }
 
-    if (phoneNumber && botToken) {
-        addOutput('ERROR: Use either phone number or bot token, not both', 'error');
-        return;
-    }
-
-    // Normalize and validate phone number
-    let normalizedPhone = '';
-    if (phoneNumber) {
-        normalizedPhone = normalizePhoneNumber(phoneNumber);
-        if (!/^\+\d{8,15}$/.test(normalizedPhone)) {
-            addOutput('ERROR: Invalid phone number after normalization: ' + normalizedPhone, 'error');
-            return;
-        }
-        phoneNumberInput.value = normalizedPhone;
-    }
-
-    // Validate DC ID (default 5)
-    let dc = '5';
-    if (dcIdInput && dcIdInput.value) {
-        const tmp = dcIdInput.value.trim();
-        if (!/^\d+$/.test(tmp)) {
-            addOutput('ERROR: Data Center ID must be a positive integer', 'error');
-            return;
-        }
-        dc = tmp;
-    }
-
-    sessionState.appId = appId;
-    sessionState.appHash = appHash;
-    sessionState.phoneNumber = normalizedPhone || phoneNumber;
-    sessionState.botToken = botToken;
-
-    isGenerating = true;
-    disableButton(sendCodeBtn);
-    clearOutput();
-    setStatus('starting');
-
-    // Load WASM if not loaded
-    if (!wasmInstance) {
-        await loadWasm();
-    }
-
-    // Wait for WASM to be ready
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (window.generateSession) {
-        try {
-            if (botToken) {
-                addOutput('Logging in as bot...', 'info');
-                updateProgress(2); // Move to processing for bot
-            } else {
-                addOutput(`Sending code to ${normalizedPhone || phoneNumber}...`, 'info');
-                setStatus('waiting_for_code');
-            }
-            window.generateSession(appId, appHash, normalizedPhone || phoneNumber, botToken, dc);
-        } catch (error) {
-            addOutput(`ERROR: ${error.message}`, 'error');
-            enableButton(sendCodeBtn);
-            isGenerating = false;
-            setStatus('error');
-        }
-
-        // Validate bot token format
-        if (botToken) {
-            // Bot token format: [bot_id]:[token] (e.g., 1234567890:ABCdefGHIjklMNOpqrsTUVwxyz)
-            const botTokenRegex = /^\d{8,10}:[A-Za-z0-9_-]{35}$/;
-            if (!botTokenRegex.test(botToken)) {
-                addOutput('ERROR: Invalid bot token format. Must be [bot_id]:[token]', 'error');
-                return;
-            }
-        }
-
-        sessionState.appId = appId;
-        sessionState.appHash = appHash;
-        sessionState.phoneNumber = phoneNumber;
-        sessionState.botToken = botToken;
-
-        isGenerating = true;
-        disableButton(sendCodeBtn);
-        clearOutput();
-
-        // Load WASM if not loaded
-        if (!wasmInstance) {
-            await loadWasm();
-        }
-
-        // Wait for WASM to be ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (window.generateSession) {
-            try {
-                if (botToken) {
-                    addOutput('Logging in as bot...', 'info');
-                    updateProgress(2); // Move to processing for bot
-                } else {
-                    addOutput(`Sending code to ${phoneNumber}...`, 'info');
-                }
-                window.generateSession(appId, appHash, phoneNumber, botToken);
-            } catch (error) {
-                addOutput(`ERROR: ${error.message}`, 'error');
-                enableButton(sendCodeBtn);
-                isGenerating = false;
-            }
-
-            // Override console.log to catch WASM output
-            const originalLog = console.log;
-            console.log = (...args) => {
-                const msg = args.join(' ');
-                addOutput(msg, 'info');
-                originalLog(...args);
-
-                // Check for prompts from WASM
-                if (msg.includes('PROMPT_CODE') && !sessionState.botToken) {
-                    sessionState.awaitingCode = true;
-                    updateProgress(2); // Move to Verify step
-                    codeGroup.style.display = 'block';
-                    verifyBtn.style.display = 'flex';
-                    sendCodeBtn.style.display = 'none';
-                    enableButton(sendCodeBtn);
-                    enableButton(verifyBtn);
-                } else if (msg.includes('PROMPT_CODE') && !sessionState.botToken) {
-                    sessionState.awaitingCode = true;
-                    updateProgress(2); // Move to Verify step
-                    codeGroup.style.display = 'block';
-                    verifyBtn.style.display = 'flex';
-                    sendCodeBtn.style.display = 'none';
-                    enableButton(sendCodeBtn);
-                    enableButton(verifyBtn);
-                    // Auto-focus code input
-                    setTimeout(() => verificationCodeInput.focus(), 100);
-                } else if (msg.includes('PROMPT_PASSWORD')) {
-                    sessionState.awaiting2FA = true;
-                    passwordGroup.style.display = 'block';
-                    addOutput('2FA enabled - Please enter your password', 'info');
-                    enableButton(verifyBtn);
-                    // Auto-focus password field
-                    setTimeout(() => passwordInput.focus(), 100);
-                } else if (msg.includes('ERROR')) {
-                    enableButton(sendCodeBtn);
-                    enableButton(verifyBtn);
-                    isGenerating = false;
-                    setStatus('failed');
-                }
-            };
-        } else {
-            addOutput('ERROR: Session generator not ready', 'error');
-            enableButton(sendCodeBtn);
-            isGenerating = false;
-        }
-    }
-});
-
-// Verify and generate
-verifyBtn.addEventListener('click', () => {
-    const code = verificationCodeInput.value.trim();
-
-    if (!code && !sessionState.awaiting2FA) {
-        addOutput('ERROR: Please enter the verification code', 'error');
-        return;
-    }
-
-    // If we're waiting for 2FA password
-    if (sessionState.awaiting2FA) {
-        const password = passwordInput.value.trim();
-        if (!password) {
-            addOutput('ERROR: Please enter your 2FA password', 'error');
-            return;
-        }
-
-        disableButton(verifyBtn);
-        addOutput('Verifying password...', 'info');
-        sendInputToWasm('password', password);
-        return;
-    }
-
-    disableButton(verifyBtn);
-    addOutput('Verifying code...', 'info');
-
-    // Send code to WASM
-    sendInputToWasm('code', code);
-});
-
-// Reset
-resetBtn.addEventListener('click', () => {
-    // Reload the page for a clean start
-    window.location.reload();
-});
-
-// Enter key handlers
-appIdInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') appHashInput.focus();
-});
-
-// Extra UI buttons wiring
-if (sendVerification) {
-    sendVerification.addEventListener('click', () => {
-        const v = verificationCodeInput.value.trim();
-        if (!v) { addOutput('Please enter a verification code', 'warn'); return; }
-        sendInputToWasm('code', v);
-        setStatus('sent_code');
-    });
+  return { appId, appHash, phone: normalizedPhone || phone, botToken, dc };
 }
 
-if (sendPassword) {
-    sendPassword.addEventListener('click', () => {
-        const p = passwordInput.value.trim();
-        if (!p) { addOutput('Please enter a password', 'warn'); return; }
-        sendInputToWasm('password', p);
-        setStatus('sent_password');
-    });
+async function onSendCode() {
+  if (busy) return;
+
+  let input;
+  try {
+    input = readInputs();
+  } catch (error) {
+    pushLine(error.message, "error");
+    setStatus("invalid");
+    return;
+  }
+
+  busy = true;
+  setButtonBusy(sendCodeBtn, true, "Preparing");
+  setButtonBusy(verifyBtn, false, "Generate Session");
+  clearConsole();
+  pushLine("Preparing runtime...", "info");
+  await loadWasm();
+
+  sendCodeBtn.classList.add("hidden");
+  verifyBtn.classList.remove("hidden");
+
+  if (input.botToken) {
+    setStatus("bot");
+    pushLine("Starting bot login...", "info");
+  } else {
+    setStatus("awaiting_code");
+    pushLine(`Sending verification code to ${input.phone}...`, "info");
+    showField(codeGroup, true);
+    verificationCodeInput.focus();
+  }
+
+  if (!window.generateSession) {
+    pushLine("Session runtime not ready yet", "error");
+    busy = false;
+    setButtonBusy(sendCodeBtn, false, "Send Code");
+    return;
+  }
+
+  try {
+    window.generateSession(input.appId, input.appHash, input.phone, input.botToken, input.dc);
+  } catch (error) {
+    busy = false;
+    setStatus("error");
+    pushLine(error.message, "error");
+    setButtonBusy(sendCodeBtn, false, "Send Code");
+  }
 }
 
-if (clearOutputBtn) clearOutputBtn.addEventListener('click', clearOutput);
-if (showConsoleBtn) showConsoleBtn.addEventListener('click', () => { addOutput('Open devtools to view console output', 'info'); });
+function onVerify() {
+  if (!busy) {
+    pushLine("No active login flow to verify", "warn");
+    return;
+  }
 
-appHashInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') phoneNumberInput.focus();
-});
+  const code = verificationCodeInput.value.trim();
+  const password = passwordInput.value.trim();
 
-phoneNumberInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendCodeBtn.click();
-});
-
-verificationCodeInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        if (passwordGroup.style.display === 'none') {
-            verifyBtn.click();
-        } else {
-            passwordInput.focus();
-        }
+  if (passwordGroup && !passwordGroup.classList.contains("hidden")) {
+    if (!password) {
+      pushLine("Enter the 2FA password first", "warn");
+      return;
     }
+    setButtonBusy(verifyBtn, true, "Applying Password");
+    pushLine("Submitting password...", "info");
+    if (!dispatchInput("password", password)) {
+      pushLine("Password channel not ready", "error");
+    }
+    return;
+  }
+
+  if (!code) {
+    pushLine("Enter the verification code first", "warn");
+    return;
+  }
+
+  setButtonBusy(verifyBtn, true, "Applying Code");
+  pushLine("Submitting verification code...", "info");
+  if (!dispatchInput("code", code)) {
+    pushLine("Code channel not ready", "error");
+  }
+}
+
+function resetFlow() {
+  window.location.reload();
+}
+
+initTheme();
+hookConsole();
+
+if (themeToggle) themeToggle.addEventListener("click", toggleTheme);
+if (sendCodeBtn) sendCodeBtn.addEventListener("click", onSendCode);
+if (verifyBtn) verifyBtn.addEventListener("click", onVerify);
+if (resetBtn) resetBtn.addEventListener("click", resetFlow);
+if (clearOutputBtn) clearOutputBtn.addEventListener("click", clearConsole);
+if (showConsoleBtn) showConsoleBtn.addEventListener("click", () => pushLine("Console is already visible below.", "debug"));
+if (sendVerification) sendVerification.addEventListener("click", () => {
+  const code = verificationCodeInput.value.trim();
+  if (!code) {
+    pushLine("Enter a code before applying it", "warn");
+    return;
+  }
+  if (!dispatchInput("code", code)) {
+    pushLine("Code channel not ready", "error");
+  }
+});
+if (sendPassword) sendPassword.addEventListener("click", () => {
+  const password = passwordInput.value.trim();
+  if (!password) {
+    pushLine("Enter a password before applying it", "warn");
+    return;
+  }
+  if (!dispatchInput("password", password)) {
+    pushLine("Password channel not ready", "error");
+  }
 });
 
-passwordInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') verifyBtn.click();
+appIdInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") appHashInput.focus();
 });
 
-// Initial setup
-updateProgress(1);
-addOutput('Enter your credentials to begin', 'info');
+appHashInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") phoneNumberInput.focus();
+});
 
-// Load WASM on page load
-loadWasm();
+phoneNumberInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") onSendCode();
+});
+
+botTokenInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") onSendCode();
+});
+
+verificationCodeInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") onVerify();
+});
+
+passwordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") onVerify();
+});
+
+showField(codeGroup, false);
+showField(passwordGroup, false);
+setStatus("idle");
+  pushLine("Ready.", "info");
+loadWasm().catch((error) => {
+  pushLine(`Failed to load wasm: ${error.message}`, "error");
+  setStatus("failed");
+});

@@ -2,396 +2,166 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Session Checker</title>
-  <style>
-    :root {
-      --bg: #ffffff;
-      --surface: #f8f9fa;
-      --surface-variant: #e9ecef;
-      --border: #dee2e6;
-      --text-primary: #212529;
-      --text-secondary: #495057;
-      --text-muted: #6c757d;
-      --primary: #4361ee;
-      --primary-hover: #3f37c9;
-      --success: #06d6a0;
-      --error: #ef476f;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.15);
-      --radius: 12px;
-      --transition: all 0.2s ease;
-    }
-
-    [data-theme="dark"] {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface-variant: #334155;
-      --border: #475569;
-      --text-primary: #f1f5f9;
-      --text-secondary: #cbd5e1;
-      --text-muted: #94a3b8;
-      --primary: #4361ee;
-      --primary-hover: #5b7aff;
-      --success: #06d6a0;
-      --error: #ef476f;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: Inter, system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text-primary);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      transition: var(--transition);
-    }
-
-    header {
-      padding: 1rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--surface);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .logo {
-      width: 40px;
-      height: 40px;
-      background: var(--primary);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      color: white;
-      font-size: 1.2rem;
-    }
-
-    .title h1 {
-      font-size: 1.25rem;
-      margin: 0;
-    }
-
-    .title p {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin: 0;
-    }
-
-    .theme-toggle {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 8px;
-      transition: var(--transition);
-    }
-
-    .theme-toggle:hover {
-      background: var(--surface-variant);
-    }
-
-    main {
-      flex: 1;
-      padding: 2rem 1rem;
-      max-width: 900px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .container {
-      display: grid;
-      gap: 1.5rem;
-      grid-template-columns: 1fr;
-    }
-
-    @media (min-width: 768px) {
-      .container {
-        grid-template-columns: 1fr 350px;
-      }
-    }
-
-    .input-section {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    textarea, input {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-primary);
-      border-radius: var(--radius);
-      font-size: 1rem;
-      outline: none;
-      transition: var(--transition);
-    }
-
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-    }
-
-    textarea:focus, input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
-    }
-
-    .app-ids {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-    }
-
-    @media (max-width: 480px) {
-      .app-ids {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    button#checkBtn {
-      padding: 0.875rem 1.5rem;
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: var(--radius);
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: var(--transition);
-      box-shadow: var(--shadow-sm);
-    }
-
-    button#checkBtn:hover:not(:disabled) {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-    }
-
-    button#checkBtn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .result {
-      padding: 1rem;
-      border-radius: var(--radius);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      white-space: pre-line;
-      font-family: monospace;
-      font-size: 0.95rem;
-      display: none;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .result.success {
-      border-color: var(--success);
-      background: rgba(6, 214, 160, 0.1);
-      color: var(--success);
-    }
-
-    .result.error {
-      border-color: var(--error);
-      background: rgba(239, 71, 111, 0.1);
-      color: var(--error);
-    }
-
-    .logs-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1rem;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .logs-title {
-      font-size: 1.1rem;
-      margin-bottom: 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    #logs {
-      background: var(--bg);
-      color: var(--text-primary);
-      padding: 0.75rem;
-      border-radius: 8px;
-      height: 300px;
-      overflow-y: auto;
-      font-family: monospace;
-      font-size: 0.875rem;
-      white-space: pre-wrap;
-    }
-
-    footer {
-      padding: 1rem;
-      text-align: center;
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      border-top: 1px solid var(--border);
-      background: var(--surface);
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gogram Session Ledger</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="session.css" />
+  <script src="wasm_exec.js"></script>
 </head>
-<body>
-  <header>
-    <div class="header-left">
-      <div class="logo">TG</div>
-      <div class="title">
-        <h1>Session Checker</h1>
-        <p>Verify Telegram session instantly • 100% client-side (WASM)</p>
+<body class="page-check">
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-switch fade-in">
+        <a class="chip-link" href="/">Go to Gen</a>
+        <button id="themeToggle" class="toggle-btn" type="button" aria-label="Toggle theme">
+          <svg class="theme-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4.8"></circle>
+            <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"></path>
+          </svg>
+        </button>
       </div>
-    </div>
-    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌙</button>
-  </header>
+      <div class="hero-copy fade-in">
+        <div class="hero-kicker">
+          <span>Session check</span>
+          <span>•</span>
+          <span>OTP fetch</span>
+        </div>
+        <h1>Check it. Mint it.</h1>
+        <p class="hero-note">Runs fully in your browser. No server, no uploads, no session storage outside your device.</p>
+      </div>
+    </section>
 
-  <main>
-    <div class="container">
-      <div class="input-section">
-        <textarea id="session" placeholder="Paste session string here..."></textarea>
-
-        <div class="app-ids">
-          <input id="appId" placeholder="App ID (optional)" />
-          <input id="appHash" placeholder="App Hash (optional)" />
+    <main class="layout">
+      <section class="panel fade-in fade-in-delay-2">
+        <div class="panel-head">
+          <div class="panel-title">
+            <div>
+              <h2>Session</h2>
+            </div>
+          </div>
         </div>
 
-        <button id="checkBtn">Check Session</button>
+        <div class="panel-body stack">
+          <div class="field">
+            <label for="session"><span>Session</span><span class="tag">paste</span></label>
+            <div class="textarea-shell">
+              <textarea id="session" placeholder="Paste session"></textarea>
+            </div>
+          </div>
 
-        <div id="result" class="result"></div>
-      </div>
+          <div class="field">
+            <label><span>App</span><span class="tag">optional</span></label>
+            <div class="dual-actions">
+              <div class="input-shell" style="flex:1; min-width:0;">
+                <span class="input-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M7 4h7l5 5v11H7z"></path>
+                    <path d="M14 4v6h6"></path>
+                  </svg>
+                </span>
+                <input id="appId" placeholder="App ID" autocomplete="off" />
+              </div>
+              <div class="input-shell" style="flex:1; min-width:0;">
+                <span class="input-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 4 6 20"></path>
+                    <path d="M18 4 16 20"></path>
+                    <path d="M4 9h16"></path>
+                    <path d="M3 15h16"></path>
+                  </svg>
+                </span>
+                <input id="appHash" placeholder="App Hash" autocomplete="off" />
+              </div>
+            </div>
+          </div>
 
-      <div class="logs-section">
-        <div class="logs-title">WASM Logs</div>
-        <pre id="logs"></pre>
-      </div>
-    </div>
-  </main>
+          <div class="toolbar">
+            <button id="checkBtn" class="action-btn" type="button">
+              <span class="btn-label">Check</span>
+              <span class="spinner hidden"></span>
+            </button>
+            <button id="getOtpBtn" class="ghost-btn" type="button">
+              <span class="btn-label">Get OTP</span>
+              <span class="spinner hidden"></span>
+            </button>
+          </div>
 
-  <footer>
-    Session Checker • Secure &amp; Private
-  </footer>
+          <div class="panel-card">
+            <div class="mini-note">Get OTP reads the Telegram notification (777000) using the pasted session. Make sure to generate the code in your app first.</div>
+          </div>
 
-  <script src="wasm_exec.js"></script>
-  <script>
-    const go = new Go();
-    let ready = false;
+          <div id="otpPanel" class="panel-card hidden">
+            <div class="result info" style="margin-bottom:0;">
+              <div class="result-head">
+                <div class="result-title">
+                  <span class="status-dot"></span>
+                  <span>OTP</span>
+                </div>
+              </div>
+              <div class="result-body">
+                <code id="otpText" class="otp-code">Waiting...</code>
+              </div>
+            </div>
+          </div>
 
-    // Override console.log to show in UI
-    const logsElement = document.getElementById('logs');
-    const originalLog = console.log;
-    console.log = function(...args) {
-      originalLog.apply(console, args);
-      logsElement.textContent += args.map(a => String(a)).join(' ') + '\n';
-      logsElement.scrollTop = logsElement.scrollHeight;
-    };
+          <div id="forgePasswordPanel" class="panel-card hidden">
+            <div class="field">
+              <label for="forgePassword"><span>Password</span><span class="tag">2fa</span></label>
+              <div class="input-shell">
+                <span class="input-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3.5"></circle>
+                    <path d="M12 2v4"></path>
+                    <path d="M12 18v4"></path>
+                    <path d="M2 12h4"></path>
+                    <path d="M18 12h4"></path>
+                  </svg>
+                </span>
+                <input id="forgePassword" type="password" placeholder="Password" autocomplete="off" />
+              </div>
+            </div>
+            <div class="toolbar" style="margin-top:0.8rem;">
+              <button id="sendForgePassword" class="ghost-btn tiny-btn" type="button">Use Password</button>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    WebAssembly.instantiateStreaming(fetch("check.wasm"), go.importObject)
-      .then(r => {
-        go.run(r.instance);
-        ready = true;
-        console.log("WASM module loaded successfully.");
-      })
-      .catch(e => {
-        console.error("WASM load failed:", e);
-      });
+      <aside class="rail fade-in fade-in-delay-3">
+        <div id="result" class="result info">
+          <div class="result-head">
+            <div class="result-title">
+              <span class="status-dot"></span>
+              <span>Ready</span>
+            </div>
+            <span id="resultStatus" class="tag">idle</span>
+          </div>
+          <div id="resultBody" class="result-body">Paste a session or mint a new one.</div>
+        </div>
 
-    const btn = document.getElementById("checkBtn");
-    const result = document.getElementById("result");
+        <div class="terminal-card">
+          <div class="terminal-top">
+            <div class="dots" aria-hidden="true">
+              <span class="dot red"></span>
+              <span class="dot amber"></span>
+              <span class="dot green"></span>
+            </div>
+            <span class="terminal-label">logs</span>
+          </div>
+          <div id="logs" class="console" aria-live="polite"></div>
+          <div class="terminal-actions">
+            <button id="clearLogsBtn" class="pill-btn tiny-btn" type="button">Clear</button>
+            <button id="copyResultBtn" class="pill-btn tiny-btn" type="button">Copy</button>
+          </div>
+        </div>
+      </aside>
+    </main>
 
-    btn.onclick = () => {
-      if (!ready) return showError("WASM not ready yet");
-      const session = document.getElementById("session").value.trim();
-      const appId = document.getElementById("appId").value.trim();
-      const appHash = document.getElementById("appHash").value.trim();
+  </div>
 
-      if (!session) return showError("Session string is required");
-
-      btn.disabled = true;
-      showInfo("Checking session…");
-      logsElement.textContent = ''; // Clear previous logs
-
-      try {
-        checkSession(
-          session,
-          appId || undefined,
-          appHash || undefined
-        );
-      } catch (e) {
-        btn.disabled = false;
-        showError(e.toString());
-      }
-    };
-
-    window.onSessionChecked = (res) => {
-      btn.disabled = false;
-      if (!res.success) {
-        showError(res.error || "Invalid session");
-        return;
-      }
-      showSuccess(
-        `✓ Valid session\n\n` +
-        `Name: ${res.fullName}\n` +
-        `Username: ${res.username || "-"}\n` +
-        `ID: ${res.id}\n` +
-        `Bot: ${res.isBot ? "Yes" : "No"}`
-      );
-    };
-
-    function showSuccess(t) {
-      result.className = "result success";
-      result.style.display = "block";
-      result.textContent = t;
-    }
-
-    function showError(t) {
-      result.className = "result error";
-      result.style.display = "block";
-      result.textContent = t;
-    }
-
-    function showInfo(t) {
-      result.className = "result";
-      result.style.display = "block";
-      result.textContent = t;
-    }
-
-    // Theme toggle
-    const themeToggle = document.getElementById('themeToggle');
-    const html = document.documentElement;
-
-    const setTheme = (theme) => {
-      html.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
-    };
-
-    const savedTheme = localStorage.getItem('theme') ||
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-    setTheme(savedTheme);
-
-    themeToggle.addEventListener('click', () => {
-      const newTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      setTheme(newTheme);
-    });
-  </script>
+  <script src="check.js"></script>
 </body>
 </html>
