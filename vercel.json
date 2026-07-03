@@ -5,7 +5,7 @@
   "trailingSlash": false,
   "headers": [
     {
-      "source": "/static/session.wasm",
+      "source": "/(.*)\\.wasm",
       "headers": [
         {
           "key": "Content-Type",
@@ -18,11 +18,11 @@
       ]
     },
     {
-      "source": "/static/(.*).js",
+      "source": "/(.*)\\.js",
       "headers": [
         {
           "key": "Content-Type",
-          "value": "application/javascript"
+          "value": "application/javascript; charset=utf-8"
         }
       ]
     }

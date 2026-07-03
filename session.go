@@ -1,5 +1,5 @@
-//go:build js && wasm
-// +build js,wasm
+//go:build js && wasm && !checker
+// +build js,wasm,!checker
 
 package main
 
@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	defaultAppID   = 2040
-	defaultAppHash = "b18441a1ff607e10a989891a5462e627"
+	defaultAppID   = tdesktopAppID
+	defaultAppHash = tdesktopAppHash
 )
 
 func main() {
@@ -42,6 +42,8 @@ func generateSession(this js.Value, args []js.Value) interface{} {
 			fmt.Printf("Phone number: %s\n", phoneNumber)
 		}
 		fmt.Printf("Requested DC: %d\n", dcID)
+		fmt.Printf("Spoofing as: %s / %s / v%s / lang_pack=%s\n",
+			tdesktopDeviceModel, tdesktopSystemVersion, tdesktopAppVersion, tdesktopLangPack)
 
 		cfg := tg.NewClientConfigBuilder(int32(appID), appHash).
 			WithMemorySession().
@@ -50,6 +52,7 @@ func generateSession(this js.Value, args []js.Value) interface{} {
 			Build()
 		cfg.UseWebSocket = true
 		cfg.UseWebSocketTLS = true
+		applySpoof(&cfg)
 
 		var err error
 		client, err = tg.NewClient(cfg)
@@ -144,54 +147,4 @@ func reportSessionResult(success bool, session, fullName, errMsg string) {
 		payload["error"] = errMsg
 	}
 	js.Global().Call("onSessionGenerated", payload)
-}
-
-func waitForInput(inputType string) string {
-	resultChan := make(chan string)
-
-	callback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		if len(args) > 0 {
-			resultChan <- args[0].String()
-		} else {
-			resultChan <- ""
-		}
-		return nil
-	})
-	defer callback.Release()
-
-	callbackName := fmt.Sprintf("__wasmInput_%s", inputType)
-	js.Global().Set(callbackName, callback)
-
-	result := <-resultChan
-	js.Global().Delete(callbackName)
-	return result
-}
-
-func buildFullName(firstName, lastName string) string {
-	firstName = strings.TrimSpace(firstName)
-	lastName = strings.TrimSpace(lastName)
-	switch {
-	case firstName == "" && lastName == "":
-		return ""
-	case lastName == "":
-		return firstName
-	case firstName == "":
-		return lastName
-	default:
-		return firstName + " " + lastName
-	}
-}
-
-func maskSecret(value string, keep int) string {
-	if value == "" {
-		return ""
-	}
-	if len(value) <= keep {
-		return value
-	}
-	return value[:keep] + "..."
-}
-
-func isUsable(v js.Value) bool {
-	return !v.IsUndefined() && !v.IsNull()
 }
