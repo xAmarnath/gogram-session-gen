@@ -2,7 +2,52 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/session.wasm",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept-encoding",
+          "value": ".*br.*"
+        }
+      ],
+      "destination": "/session.wasm.br"
+    },
+    {
+      "source": "/check.wasm",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept-encoding",
+          "value": ".*br.*"
+        }
+      ],
+      "destination": "/check.wasm.br"
+    }
+  ],
   "headers": [
+    {
+      "source": "/(.*)\\.wasm\\.br",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/wasm"
+        },
+        {
+          "key": "Content-Encoding",
+          "value": "br"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
+        }
+      ]
+    },
     {
       "source": "/(.*)\\.wasm",
       "headers": [
@@ -13,6 +58,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
         }
       ]
     },
